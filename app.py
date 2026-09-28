@@ -7,7 +7,6 @@ st.set_page_config(page_title="Agente Analítico", page_icon="🤖", layout="wid
 
 # Conectando com a IA usando a chave secreta do cofre
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-modelo = genai.GenerativeModel('gemini-pro')
 
 st.title("🤖 Agente Analítico Autônomo")
 st.write("Bem-vindo! Arraste sua base de dados bruta para iniciar a análise automática.")
@@ -28,29 +27,16 @@ if arquivo_upload is not None:
         # --- O MOTOR DE IA ENTRA EM AÇÃO ---
         st.subheader("🧠 Interpretação do Agente")
         
-        # O spinner cria aquela animação de "carregando" enquanto a IA pensa
-        with st.spinner("Analisando padrões matemáticos e escrevendo o relatório..."):
-            
-            # Pegamos um resumo estatístico da tabela (médias, máximos, mínimos)
-            resumo_estatistico = df.describe().to_string()
-            nome_colunas = ", ".join(df.columns)
-            
-            # Montamos a instrução (prompt) que será enviada para o Gemini
-            prompt = f"""
-            Você é um analista de dados sênior. O usuário acabou de fazer upload de uma planilha.
-            As colunas presentes são: {nome_colunas}.
-            Aqui está o resumo estatístico dos dados numéricos:
-            {resumo_estatistico}
-            
-            Escreva um parágrafo curto, direto e em português do Brasil explicando as principais tendências que você consegue notar nesses números. 
-            Fale com tom profissional, mas acessível. Não use formatação em markdown exagerada, apenas texto corrido e negritos onde importar.
-            """
-            
-            # Enviamos a requisição para a IA e guardamos a resposta
-            resposta = modelo.generate_content(prompt)
-            
-            # Exibimos o texto gerado na tela
-            st.write(resposta.text)
+        with st.spinner("Verificando os modelos disponíveis na sua conta..."):
+            try:
+                # Lista todos os modelos que suportam geração de texto
+                modelos = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                
+                st.write("✅ Modelos autorizados para a sua chave:")
+                st.write(modelos)
+                
+            except Exception as e:
+                st.error(f"Erro ao conectar com o Google: {e}")
 
     except Exception as e:
-        st.error(f"Ops! Ocorreu um erro: {e}")
+        st.error(f"Ops! Ocorreu um erro ao ler a planilha: {e}")
