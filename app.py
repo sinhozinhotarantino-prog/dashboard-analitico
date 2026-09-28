@@ -7,7 +7,7 @@ st.set_page_config(page_title="Agente Analítico", page_icon="🤖", layout="wid
 
 # Conectando com a IA usando a chave secreta do cofre
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-modelo = genai.GenerativeModel('gemini-1.5-flash')
+modelo = genai.GenerativeModel('gemini-pro')
 
 st.title("🤖 Agente Analítico Autônomo")
 st.write("Bem-vindo! Arraste sua base de dados bruta para iniciar a análise automática.")
