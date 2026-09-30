@@ -50,7 +50,7 @@ def renderizar_grafico(texto, df):
 def consultar_ia(prompt):
     resposta = cliente_groq.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="llama-3.1-8b-instant",
+        model="llama3-8b-8192",
         temperature=0.3
     )
     return resposta.choices[0].message.content
