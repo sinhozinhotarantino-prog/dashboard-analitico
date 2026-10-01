@@ -14,7 +14,7 @@ except Exception as e:
     st.stop()
 
 st.title("🤖 Agente Analítico Universal")
-st.write("Faça o upload de qualquer base de dados. O Agente fará a leitura inicial e aguardará suas instruções.")
+st.write("Faça o upload de qualquer base de dados. O Agente fará a leitura inicial, um diagnóstico de qualidade e aguardará suas instruções.")
 
 arquivo_upload = st.file_uploader("Suba sua planilha (CSV ou Excel)", type=["csv", "xlsx"])
 
@@ -57,16 +57,45 @@ def consultar_ia(prompt):
 
 if arquivo_upload is not None:
     try:
+        # 1. Leitura inicial dos dados brutos
         if arquivo_upload.name.endswith('.csv'):
             df = pd.read_csv(arquivo_upload)
         else:
             df = pd.read_excel(arquivo_upload)
             
-        with st.expander("🔍 Visualizar estrutura dos dados brutos"):
+        # 2. Diagnóstico de Qualidade dos Dados
+        st.subheader("🩺 Diagnóstico da Base de Dados")
+        nulos_totais = df.isnull().sum().sum()
+        linhas_duplicadas = df.duplicated().sum()
+        
+        if nulos_totais > 0 or linhas_duplicadas > 0:
+            st.warning(f"⚠️ **Atenção:** O sistema detectou {nulos_totais} células em branco e {linhas_duplicadas} linhas repetidas na sua planilha.")
+            
+            # Interruptor de limpeza no Streamlit
+            corrigir = st.toggle("✨ Limpar e Padronizar Dados Automaticamente")
+            
+            if corrigir:
+                # Remove linhas idênticas
+                df = df.drop_duplicates()
+                
+                # Trata células vazias de acordo com o tipo de dado
+                for col in df.columns:
+                    if df[col].dtype == 'object' or df[col].dtype == 'string':
+                        df[col] = df[col].fillna("Não Informado")
+                    else:
+                        df[col] = df[col].fillna(0)
+                        
+                st.success("✅ Assepsia concluída! Linhas duplicadas foram removidas e os valores em branco foram preenchidos. O Agente usará a base tratada.")
+        else:
+            st.success("✅ A base de dados está em perfeitas condições. Nenhuma anomalia estrutural detectada.")
+
+        # 3. Visualização dos dados
+        with st.expander("🔍 Visualizar estrutura dos dados (Primeiras 5 linhas)"):
             st.dataframe(df.head(5))
         
         st.divider()
 
+        # 4. Processamento da IA (Categorias e Histórico)
         resumo_categorias = ""
         colunas_texto = df.select_dtypes(include=['object', 'string']).columns
         for col in colunas_texto:
@@ -155,7 +184,7 @@ if arquivo_upload is not None:
         erro_str = str(e).lower()
         if "429" in erro_str or "rate limit" in erro_str or "quota" in erro_str:
             st.warning("""
-            ⚠️️ **Olá! Muitos recrutadores estão testando esta ferramenta hoje e o limite da API de demonstração foi atingido.**
+            ⚠ **Olá! Muitos recrutadores estão testando esta ferramenta hoje e o limite da API de demonstração foi atingido.**
             
             Enquanto a cota se renova (leva apenas alguns segundos), você pode conferir o vídeo de demonstração completa desta aplicação funcionando no meu repositório.
             
