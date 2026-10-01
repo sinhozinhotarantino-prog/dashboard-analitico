@@ -23,18 +23,24 @@ def renderizar_grafico(texto, df):
     if match:
         tipo = match.group(1).strip().upper()
         eixo_x = match.group(2).strip()
-        eixo_y = match.group(3).strip()
+        eixo_y_raw = match.group(3).strip()
         col_filtro = match.group(4).strip()
         val_filtro = match.group(5).strip()
         
+        # Permite plotar múltiplas colunas no Eixo Y se a IA separar por vírgula
+        if ',' in eixo_y_raw:
+            eixo_y = [col.strip() for col in eixo_y_raw.split(',')]
+        else:
+            eixo_y = eixo_y_raw
+            
         df_plot = df.copy()
         
         try:
             if col_filtro.upper() != "NENHUM" and val_filtro.upper() != "NENHUM" and col_filtro in df.columns:
                 df_plot = df_plot[df_plot[col_filtro].astype(str).str.contains(val_filtro, case=False, na=False)]
-                st.markdown(f"**📊 Visualização Gerada:** {tipo} ({eixo_x} vs {eixo_y}) - *Filtrado por: {col_filtro} = {val_filtro}*")
+                st.markdown(f"**📊 Visualização Gerada:** {tipo} ({eixo_x} vs {eixo_y_raw}) - *Filtrado por: {col_filtro} = {val_filtro}*")
             else:
-                st.markdown(f"**📊 Visualização Gerada:** {tipo} ({eixo_x} vs {eixo_y})")
+                st.markdown(f"**📊 Visualização Gerada:** {tipo} ({eixo_x} vs {eixo_y_raw})")
                 
             if "BARRA" in tipo:
                 st.bar_chart(df_plot, x=eixo_x, y=eixo_y)
@@ -45,7 +51,7 @@ def renderizar_grafico(texto, df):
             else:
                 st.info(f"O modelo de gráfico sugerido ({tipo}) não possui suporte nativo imediato.")
         except Exception as e:
-            st.caption(f"Aviso: Não foi possível desenhar o gráfico. (Erro: {e})")
+            st.caption(f"Aviso: Não foi possível desenhar o gráfico. Verifique se as colunas solicitadas existem na tabela. (Erro: {e})")
 
 def consultar_ia(prompt):
     resposta = cliente_groq.chat.completions.create(
@@ -69,7 +75,7 @@ if arquivo_upload is not None:
         linhas_duplicadas = df.duplicated().sum()
         
         if nulos_totais > 0 or linhas_duplicadas > 0:
-            st.warning(f"⚠️ **Atenção:** O sistema detectou {nulos_totais} células em branco e {linhas_duplicadas} linhas repetidas na sua planilha.")
+            st.warning(f"⚠️️ **Atenção:** O sistema detectou {nulos_totais} células em branco e {linhas_duplicadas} linhas repetidas na sua planilha.")
             
             # Interruptor de limpeza no Streamlit
             corrigir = st.toggle("✨ Limpar e Padronizar Dados Automaticamente")
@@ -133,7 +139,13 @@ if arquivo_upload is not None:
         for msg in st.session_state.chat_history:
             with st.chat_message("🤖" if msg["role"] == "ai" else "🧑‍💻"):
                 texto_limpo = re.sub(r'\|\|GRAFICO.*?\|\|', '', msg["content"])
-                st.write(texto_limpo)
+                
+                # Previne que balões fiquem totalmente vazios caso a IA gere apenas a tag
+                if msg["role"] == "ai" and texto_limpo.strip() == "":
+                    st.write("Aqui está a visualização solicitada:")
+                else:
+                    st.write(texto_limpo)
+                    
                 if msg["role"] == "ai":
                     renderizar_grafico(msg["content"], df)
 
@@ -161,21 +173,26 @@ if arquivo_upload is not None:
                     {contexto_conversa}
                     
                     DIRETRIZES DE GRÁFICOS:
-                    1. Recomende o gráfico adequado e peça aprovação.
-                    2. SE O USUÁRIO CONFIRMAR A CRIAÇÃO DE UM GRÁFICO, inclua EXATAMENTE esta estrutura no final:
+                    1. Recomende o gráfico adequado e PEÇA APROVAÇÃO expressa (ex: "Você confirma a criação deste gráfico?").
+                    2. SE O USUÁRIO CONFIRMAR (disser "sim", "ok", "pode fazer"), responda com um breve texto confirmando a ação E inclua EXATAMENTE esta estrutura de tag no final:
                     ||GRAFICO | [TIPO] | [EIXO_X] | [EIXO_Y] | [COLUNA_FILTRO] | [VALOR_FILTRO]||
                     
                     - Tipos suportados: BARRAS, LINHAS, DISPERSAO.
+                    - Para comparar mais de uma coluna no mesmo gráfico (Ex: comparar 2 bimestres), separe os nomes das colunas por vírgula no [EIXO_Y]. Ex: ||GRAFICO | LINHAS | Engajamento | Media_1B, Media_2B | NENHUM | NENHUM||
                     - Exemplo sem filtro: ||GRAFICO | BARRAS | Vendedor | Faturamento | NENHUM | NENHUM||
                     - Exemplo com filtro: ||GRAFICO | BARRAS | Nome | Nota | Turma | 6º Ano A||
                     
-                    Responda à dúvida de forma analítica e em português do Brasil.
+                    Nunca envie apenas a tag do gráfico; sempre escreva um texto explicativo junto.
                     """
                     
                     texto_final = consultar_ia(prompt_chat)
                     
                     texto_exibicao = re.sub(r'\|\|GRAFICO.*?\|\|', '', texto_final)
-                    st.write(texto_exibicao)
+                    
+                    if texto_exibicao.strip() == "":
+                        st.write("Gráfico processado com sucesso:")
+                    else:
+                        st.write(texto_exibicao)
                     
                     renderizar_grafico(texto_final, df)
                     st.session_state.chat_history.append({"role": "ai", "content": texto_final})
