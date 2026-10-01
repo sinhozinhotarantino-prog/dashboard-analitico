@@ -1,6 +1,7 @@
 # 🤖 Agente Analítico Universal (Dashboard Analítico)
 
-![Visitantes](https://komarev.com/ghpvc/?username=sinhozinhotarantino-prog&label=VISITANTES&color=blue&style=flat)
+![Visitantes](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fsinhozinhotarantino-prog%2Fdashboard-analitico&label=VISITANTES&countColor=%230d6efd)
+
 Um *dashboard* interativo construído em Python que permite analisar e conversar com as suas bases de dados em segundos. Este projeto foi criado para eliminar a barreira técnica da análise de dados, automatizando a limpeza preliminar de planilhas (*Data Quality*) e utilizando Inteligência Artificial para gerar informações e gráficos através de linguagem natural.
 
 ## ✨ Funcionalidades Principais
